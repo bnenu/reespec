@@ -1,0 +1,8 @@
+reespec/
+.pi/
+.github/
+tests/
+research_*/
+bin/reespec.sh
+.DS_Store
+package-lock.json

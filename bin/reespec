@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+// reespec entry point — delegates to reespec.mjs
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+await import(path.join(__dirname, 'reespec.mjs'));
