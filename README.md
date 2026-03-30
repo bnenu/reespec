@@ -6,17 +6,17 @@ A human-agent collaboration framework for expressing intent, planning work, and 
 
 ## What is reespec?
 
-reespec structures how humans and AI agents work together through three phases:
+reespec structures how humans and AI agents work together through four phases:
 
 ```
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│   discover    │────▶│     plan      │────▶│    execute    │
-│               │     │               │     │               │
-│ explore the   │     │ produce all   │     │ implement one │
-│ problem space │     │ artifacts with│     │ RED→GREEN     │
-│ one question  │     │ verifiable    │     │ cycle at a    │
-│ at a time     │     │ assertions    │     │ time          │
-└───────────────┘     └───────────────┘     └───────────────┘
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│   discover    │────▶│     plan      │────▶│    execute    │────▶│   evaluate    │
+│               │     │               │     │               │     │   (optional)  │
+│ explore the   │     │ produce all   │     │ implement one │     │ verify output │
+│ problem space │     │ artifacts with│     │ RED→GREEN     │     │ against the   │
+│ one question  │     │ verifiable    │     │ cycle at a    │     │ contract,     │
+│ at a time     │     │ assertions    │     │ time          │     │ triage gaps   │
+└───────────────┘     └───────────────┘     └───────────────┘     └───────────────┘
 ```
 
 **Two goals:**
@@ -68,13 +68,16 @@ reespec new request "add-user-auth"
 # 5. execute
 # → ask your agent to use the reespec-execute skill
 
-# 6. archive when done
+# 6. evaluate (optional — for complex requests)
+# → ask your agent to use the reespec-evaluate skill
+
+# 7. archive when done
 reespec archive --request "add-user-auth"
 ```
 
 ---
 
-## The Three Phases
+## The Four Phases
 
 ### 1. discover
 
@@ -124,9 +127,21 @@ You review all artifacts before execution begins. You can adjust any assertion, 
 Implements tasks one RED→GREEN cycle at a time.
 
 - Reads all context (brief, design, specs, tasks, decisions) before starting
+- If `evaluations.md` exists from a previous evaluate run, announces flagged gaps and focuses there first
 - For each task: confirm RED fails → implement → verify GREEN passes → mark complete
 - Pauses and reports on any blocker — never guesses
 - Updates `decisions.md` when significant decisions are made during implementation
+
+### 4. evaluate *(optional)*
+
+An adversarial post-execute check inspired by the GAN discriminator pattern. Reads only the contract (`brief.md` + `specs/`) and the actual outputs — never `tasks.md` or `design.md` — and returns a structured verdict per capability.
+
+- **Blind to implementation intent** — judges output against contract only
+- **Adversarial by design** — looks for gaps, not confirmation
+- Per-capability verdicts: `✅ SATISFIED` / `⚠️ PARTIAL` / `❌ UNSATISFIED` / `❓ UNCLEAR`
+- Triage summary: *safe to skip / worth a look / human call*
+- Appends a timestamped entry to `evaluations.md` — the full iteration history stays with the request
+- Never a hard gate — always optional, always human-decided
 
 ---
 
@@ -143,6 +158,7 @@ reespec/
         <capability>/
           spec.md                 ← GIVEN/WHEN/THEN scenarios
       tasks.md                    ← RED/ACTION/GREEN checklist
+      evaluations.md              ← append-only evaluation log (optional)
     archive/
       YYYY-MM-DD-<name>/          ← completed requests
 ```
@@ -187,6 +203,7 @@ reespec new request <name>          scaffold a new request
 reespec list                        list active requests with status
 reespec status --request <name>     show artifact status for a request
 reespec archive --request <name>    archive a completed request
+reespec update                      re-sync skills into installed harnesses
 ```
 
 ---
@@ -205,6 +222,7 @@ cp -r .pi/skills/reespec-* ~/.pi/agent/skills/
 | `reespec-discover` | Starting a new request or exploring a problem |
 | `reespec-plan` | Producing artifacts after discovery |
 | `reespec-execute` | Implementing tasks from a planned request |
+| `reespec-evaluate` | Verifying implementation against the contract (optional, post-execute) |
 | `reespec-archive` | Finalising and archiving a completed request |
 
 ---
@@ -238,10 +256,95 @@ Agent works through tasks:
 3. RED: file has no headers → GREEN: headers present ✓
 4. RED: docs missing export section → GREEN: docs updated ✓
 
-All done. Agent suggests archive.
+All done. Agent suggests evaluate or archive.
+
+**→ evaluate phase** *(optional)*
+Agent reads `brief.md` + `specs/` as the contract, scans the outputs:
+```
+### csv-export-capability
+verdict:  ⚠️ PARTIAL
+reason:   brief says "include column headers" — export endpoint found but
+          headers absent from test fixture in tests/export.test.mjs
+focus:    tests/export.test.mjs — header assertion missing
+
+## Triage
+✅ Safe to skip:   streaming-response, frontend-button, docs
+⚠️  Worth a look:  csv-export (missing header assertion)
+```
+Human fixes the gap, re-runs execute for that one task, evaluates again — all green.
+Evaluation logged to `reespec/requests/add-csv-export/evaluations.md`.
 
 **→ archive**
 Request moves to `reespec/requests/archive/2026-03-20-add-csv-export/`
+(includes `evaluations.md` — full iteration history travels with the request)
+
+---
+
+## Consistency
+
+reespec's value proposition is **consistent agent behavior across all harnesses** — the same framework rules produce the same behavior whether you're using pi, Cursor, Claude.ai, or any other supported agent.
+
+The `evals/` directory contains a [promptfoo](https://promptfoo.dev)-based eval suite that verifies this consistency programmatically and semantically.
+
+### What the eval suite checks
+
+**Four highest-priority failure modes:**
+
+| Failure mode | How it's caught |
+|---|---|
+| Agent jumps to solutions in discover | Semantic judge: `no-premature-solution` |
+| Multiple questions per turn in discover | Structural: question count per agent turn |
+| Fake RED (vague assertion, not a real test) | Semantic judge: `real-red-assertion` |
+| Fake GREEN (declared complete, not verified) | Semantic judge: `verified-green` |
+| Cross-harness drift | Semantic judge: `cross-harness-drift` (run separately) |
+
+### Public scenarios
+
+Committed synthetic scenarios in `evals/public/`:
+
+```
+discover/
+  01-vague-idea          user has fuzzy intent, agent must draw it out
+  02-premature-solution  user proposes a solution early, agent must redirect
+  03-multiple-threads    many open questions exist, agent must pick one
+
+plan/
+  01-code-request        standard feature request — RED must be a real test file
+  02-noncode-request     documentation task — RED must be a binary assertion
+
+execute/
+  01-fake-green          agent must show test output before marking GREEN
+  02-red-first           agent must write failing test before implementing
+```
+
+### Running evals
+
+```bash
+# Run full public suite (structural + semantic — requires OPENAI_API_KEY)
+npm run eval
+
+# Structural checks only — fast, free, CI-safe (no API key needed)
+npm run eval:structural
+
+# Semantic (LLM-judge) checks only — run before shipping framework changes
+npm run eval:semantic
+
+# Cross-harness comparison — side-by-side across providers
+npm run eval:compare
+```
+
+**Structural checks** run automatically in CI on pushes that modify `skills/**` or `evals/public/**`.
+
+**Semantic checks** require an `OPENAI_API_KEY` and are run locally on demand — they cost money and are non-deterministic, so they are not part of the CI gate.
+
+### Private evals
+
+You can run the eval suite against your own real interaction transcripts. See `evals/private/README.md` for the format — real sessions are formatted as `conversation.yaml` and labelled good/bad/borderline in `label.md`. The `evals/private/` directory is gitignored and never committed.
+
+```bash
+# Run private suite against labelled sessions (requires evals/private/sessions/)
+npm run eval:private
+```
 
 ---
 
@@ -252,3 +355,4 @@ Request moves to `reespec/requests/archive/2026-03-20-add-csv-export/`
 - **Approachable by anyone** — technical or not, solo or team
 - **One question at a time** — in discover, always
 - **Every task is verifiable** — RED/ACTION/GREEN, no exceptions
+- **Evaluate is adversarial by design** — blind to intent, judges output against contract only

@@ -184,6 +184,34 @@ RED assertions are observable: file existence, content presence, structural chec
 
 ---
 
+### 13. Add reespec-evaluate to SKILL_NAMES in the CLI
+
+- [x] **RED** — Check: `bin/reespec.mjs` `SKILL_NAMES` array does not contain
+      `'reespec-evaluate'`. Assertion fails — evaluate skill is not installed by CLI.
+- [x] **ACTION** — Add `'reespec-evaluate'` to the `SKILL_NAMES` array in
+      `bin/reespec.mjs`.
+- [x] **GREEN** — Verify: `bin/reespec.mjs` contains `'reespec-evaluate'` inside
+      the `SKILL_NAMES` array.
+
+---
+
+### 14. Add `reespec update` command to the CLI
+
+- [x] **RED** — Check: `bin/reespec.mjs` does not contain a `cmdUpdate` function
+      and `'update'` is not handled in the dispatch switch. Assertion fails —
+      command does not exist.
+- [x] **ACTION** — Implement `cmdUpdate`: detect which harnesses are already
+      installed in the project by checking which harness `skillsDir` directories
+      exist under cwd. For each detected harness, call `installHarness` to
+      overwrite skill files with the latest from the package. Print which
+      harnesses were updated and how many skills. If no harnesses detected,
+      print a helpful message. Register in dispatch switch and add to
+      `printUsage()`.
+- [x] **GREEN** — Verify: `bin/reespec.mjs` contains `cmdUpdate`, `'update'`
+      in the dispatch switch, and `update` in `printUsage()`.
+
+---
+
 ### 8. Initialize git repo and prepare for npm publish
 
 - [x] **RED** — Check: `/Users/bn/p/pel/pi-evaluate` is not a git repository

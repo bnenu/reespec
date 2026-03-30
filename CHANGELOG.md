@@ -13,7 +13,7 @@ All notable changes to the reespec framework are documented here.
   (verdict blocks + triage summary) for traceability of intent vs outcome across
   multiple execute/evaluate cycles.
 
-- **`reespec-evaluate` skill** (via `pi-evaluate` npm package) — adversarial
+- **`reespec-evaluate` skill** — adversarial
   post-execute evaluator inspired by the GAN discriminator pattern. Reads
   `brief.md` + `specs/` as the contract, scans actual outputs, returns structured
   verdicts per capability (SATISFIED / PARTIAL / UNSATISFIED / UNCLEAR) plus a
@@ -22,6 +22,12 @@ All notable changes to the reespec framework are documented here.
 
 - **Standalone mode** in `pi-evaluate` — works outside reespec projects by accepting
   a freeform contract pasted by the user.
+
+### Added
+
+- **`reespec update` CLI command** — re-syncs skills from the installed package
+  into all harnesses already set up in the project. Existing users run
+  `npm update reespec && reespec update` to get new skills without re-initialising.
 
 ### Changed
 

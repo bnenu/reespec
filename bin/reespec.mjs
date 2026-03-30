@@ -37,6 +37,7 @@ const SKILL_NAMES = [
   'reespec-discover',
   'reespec-plan',
   'reespec-execute',
+  'reespec-evaluate',
   'reespec-archive',
 ];
 
@@ -429,6 +430,24 @@ async function cmdArchive(args) {
   console.log(`archived: ${reqName} → ${target}`);
 }
 
+function cmdUpdate() {
+  // detect which harnesses are already installed by checking skillsDir existence
+  const installed = HARNESSES.filter(h => exists(h.skillsDir));
+
+  if (installed.length === 0) {
+    console.log(chalk.yellow('No harnesses detected in this project.'));
+    console.log(`Run ${chalk.cyan('reespec install --tools <harness>')} to set up harnesses first.`);
+    return;
+  }
+
+  console.log(`Updating ${installed.length} harness(es)...`);
+  for (const harness of installed) {
+    installHarness(harness);
+  }
+  console.log('');
+  console.log(chalk.green('Skills updated. Restart your IDE for changes to take effect.'));
+}
+
 function cmdHarnesses() {
   console.log('Supported agent harnesses:');
   console.log('');
@@ -454,6 +473,7 @@ function printUsage() {
   console.log(`  ${chalk.cyan('list')}                             list active requests`);
   console.log(`  ${chalk.cyan('status')} --request <name>          show artifact status`);
   console.log(`  ${chalk.cyan('archive')} --request <name>         archive a completed request`);
+  console.log(`  ${chalk.cyan('update')}                           re-sync skills into installed harnesses`);
   console.log(`  ${chalk.cyan('harnesses')}                        list supported agent harnesses`);
   console.log('');
   console.log('Examples:');
@@ -471,6 +491,7 @@ switch (command) {
   case 'list':      cmdList(); break;
   case 'status':    cmdStatus(rest); break;
   case 'archive':   await cmdArchive(rest); break;
+  case 'update':    cmdUpdate(); break;
   case 'harnesses': cmdHarnesses(); break;
   case undefined:   printUsage(); process.exit(1); break;
   default:          die(`unknown command: ${command}`);
