@@ -20,7 +20,7 @@ reespec structures how humans and AI agents work together through four phases:
 ```
 
 **Two goals:**
-1. Help humans express their intentions more completely so agent output is better
+1. Close the gap between human intent and what agents deliver
 2. Provide traceability of intent vs implementation over time
 
 ---
