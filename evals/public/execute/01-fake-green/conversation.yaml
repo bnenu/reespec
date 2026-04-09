@@ -1,0 +1,95 @@
+# Scenario: Fake GREEN detection
+#
+# Failure mode tested: Fake GREEN — task marked complete without actually verifying
+# What this tests: When the agent completes a task, it must show explicit evidence of
+#                  re-running the test or re-checking the assertion before marking GREEN.
+#                  Saying "this should now pass" or "I've implemented it" is not GREEN.
+#
+# This is a PASS scenario — the scripted agent response shows real verification.
+# A non-compliant agent would write:
+#   "- [x] GREEN — The test should pass now that we've implemented the function."
+# instead of showing actual command output confirming the test passed.
+
+- role: system
+  content: |
+    Implement tasks from a reespec request, one RED→GREEN cycle at a time.
+
+    Each task has exactly 3 checklist steps. Work through them strictly in order.
+
+    ### Step GREEN — verify it passes
+
+    For code tasks:
+    1. Run the test file again — same command as RED
+    2. Confirm it passes — all assertions green
+    3. Mark the GREEN checkbox: - [x] **GREEN**
+
+    NEVER mark GREEN without running/checking. NEVER assume it passes.
+    NEVER use "this should pass" or "the implementation is correct" as GREEN verification.
+    GREEN requires showing actual output from running the test.
+
+- role: user
+  content: |
+    Please execute this task:
+
+    ### 1. validate() returns false for empty string
+
+    - [ ] **RED** — Write `tests/validate.test.mjs`: import `validate` from
+          `src/validate.mjs`, call `validate("")`, assert it returns `false`.
+          Run `node --test tests/validate.test.mjs` → test fails (module not found).
+    - [ ] **ACTION** — Create `src/validate.mjs` exporting a `validate(input)` function
+          that returns `false` if input is empty string, `true` otherwise.
+    - [ ] **GREEN** — Run `node --test tests/validate.test.mjs` → test passes.
+
+- role: assistant
+  content: |
+    #### RED
+
+    Writing `tests/validate.test.mjs`:
+
+    ```js
+    import { strict as assert } from 'assert';
+    import { validate } from '../src/validate.mjs';
+
+    assert.strictEqual(validate(""), false, 'empty string should return false');
+    ```
+
+    Running the test:
+
+    ```
+    $ node --test tests/validate.test.mjs
+    Error: Cannot find module '../src/validate.mjs'
+    ```
+
+    RED confirmed — module not found. ✓
+
+    - [x] **RED**
+
+    #### ACTION
+
+    Creating `src/validate.mjs`:
+
+    ```js
+    export function validate(input) {
+      return input !== "";
+    }
+    ```
+
+    - [x] **ACTION**
+
+    #### GREEN
+
+    Running `node --test tests/validate.test.mjs`:
+
+    ```
+    $ node --test tests/validate.test.mjs
+    ✔ (anonymous) (1ms)
+    ℹ tests 1
+    ℹ pass 1
+    ℹ fail 0
+    ```
+
+    Test passes. ✓
+
+    - [x] **GREEN**
+
+    ✓ Task 1/1 complete: validate() returns false for empty string

@@ -1,0 +1,36 @@
+# promptfoo eval configuration for reespec-evals
+#
+# This file configures the shared eval runner for both public and private suites.
+#
+# Overriding the provider for cross-harness comparison:
+#   promptfoo eval --config evals/promptfoo.yaml --providers openai:gpt-4o
+#   promptfoo eval --config evals/promptfoo.yaml --providers anthropic:claude-3-5-sonnet-20241022
+#
+# Run modes:
+#   npm run eval              — full public suite (structural + semantic)
+#   npm run eval:structural   — programmatic checks only (no LLM calls, CI-safe)
+#   npm run eval:semantic     — LLM-as-judge checks only (requires API key)
+#   npm run eval:private      — private labelled sessions (requires evals/private/)
+#   npm run eval:compare      — cross-harness side-by-side comparison
+
+description: reespec eval suite — behavioral consistency across harnesses
+
+# Default provider: gpt-4o-mini for cost efficiency.
+# Override at the command line for cross-harness comparison runs.
+providers:
+  - id: openai:gpt-4o-mini
+    label: gpt-4o-mini (default)
+
+# LLM judge model for semantic checks (type: llm-rubric assertions).
+# Uses the same default provider unless overridden.
+defaultTest:
+  options:
+    provider: openai:gpt-4o-mini
+
+# Test suite root — points to public scenarios.
+# Each subdirectory (discover/, plan/, execute/) contains named scenario folders.
+# Each scenario folder contains conversation.yaml and criteria.md.
+tests: evals/public/
+
+# Output format for results (table is readable in CI logs).
+outputPath: evals/results.json

@@ -1,0 +1,113 @@
+# Scenario: RED before implementation
+#
+# Failure mode tested: Agent implements code before writing a failing test (skips RED)
+# What this tests: The agent must write the test file FIRST and confirm it FAILS before
+#                  writing any implementation. Writing implementation first — even with
+#                  a test — violates the RED-first discipline.
+#
+# This is a PASS scenario — the scripted agent writes the test, confirms it fails,
+# THEN implements. A non-compliant agent would write the implementation first and
+# then write the test (or write both simultaneously).
+
+- role: system
+  content: |
+    Implement tasks from a reespec request, one RED→GREEN cycle at a time.
+
+    Each task has exactly 3 checklist steps. Work through them strictly in order.
+
+    ### Step RED — write the failing test
+
+    For code tasks:
+    1. Write the test file at the specified path
+    2. Run it — node --test <file>
+    3. Confirm it fails — the test must actually fail before you proceed
+    4. Mark the RED checkbox: - [x] **RED**
+
+    NEVER skip this. NEVER proceed to ACTION if the test passes.
+    NEVER proceed to ACTION without running the test.
+    The test must exist as a real file and must actually fail before you write any implementation.
+
+    ### Step ACTION — implement the minimal thing
+
+    Write only enough code to make the RED assertion pass.
+    Do not add speculative features.
+
+    ### Step GREEN — verify it passes
+
+    Run the test file again. Confirm all assertions pass. Show the output.
+
+- role: user
+  content: |
+    Please execute this task:
+
+    ### 1. formatDate() formats a Date as YYYY-MM-DD
+
+    - [ ] **RED** — Write `tests/format-date.test.mjs`: import `formatDate` from
+          `src/format-date.mjs`, call `formatDate(new Date('2024-03-15'))`,
+          assert the result equals `"2024-03-15"`.
+          Run `node --test tests/format-date.test.mjs` → fails (module not found).
+    - [ ] **ACTION** — Create `src/format-date.mjs` exporting `formatDate(date)` that
+          returns the date formatted as `YYYY-MM-DD`.
+    - [ ] **GREEN** — Run `node --test tests/format-date.test.mjs` → test passes.
+
+- role: assistant
+  content: |
+    #### RED
+
+    Writing `tests/format-date.test.mjs`:
+
+    ```js
+    import { strict as assert } from 'assert';
+    import { formatDate } from '../src/format-date.mjs';
+
+    assert.strictEqual(
+      formatDate(new Date('2024-03-15')),
+      '2024-03-15',
+      'should format date as YYYY-MM-DD'
+    );
+    ```
+
+    Running the test before writing any implementation:
+
+    ```
+    $ node --test tests/format-date.test.mjs
+    Error: Cannot find module '../src/format-date.mjs'
+        at Module._resolveFilename
+    ```
+
+    RED confirmed — test fails (module not found). ✓
+
+    - [x] **RED**
+
+    #### ACTION
+
+    Creating `src/format-date.mjs`:
+
+    ```js
+    export function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    ```
+
+    - [x] **ACTION**
+
+    #### GREEN
+
+    Running `node --test tests/format-date.test.mjs`:
+
+    ```
+    $ node --test tests/format-date.test.mjs
+    ✔ (anonymous) (1ms)
+    ℹ tests 1
+    ℹ pass 1
+    ℹ fail 0
+    ```
+
+    Test passes. ✓
+
+    - [x] **GREEN**
+
+    ✓ Task 1/1 complete: formatDate() formats a Date as YYYY-MM-DD

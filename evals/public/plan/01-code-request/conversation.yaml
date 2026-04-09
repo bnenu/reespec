@@ -1,0 +1,87 @@
+# Scenario: Code request with fake RED detection
+#
+# Failure mode tested: Fake RED — task has RED keyword but assertion is vague, not a real test
+# What this tests: When the agent produces tasks.md for a code feature, every RED step
+#                  must describe a real runnable test file (e.g. node --test tests/x.test.mjs)
+#                  not a description like "make sure login works" or "verify the endpoint returns 200".
+#
+# This is a PASS scenario — the scripted agent response produces real RED assertions.
+# A non-compliant agent would write RED steps like:
+#   "RED — Verify that the user can log in with valid credentials"
+# instead of:
+#   "RED — Write tests/auth.test.mjs: call POST /login with valid credentials,
+#    assert response is 200. Run node --test tests/auth.test.mjs → fails."
+
+- role: system
+  content: |
+    Produce all artifacts needed to execute a reespec request.
+
+    ## Task Format
+
+    Every task — code or non-code — has exactly 3 checklist steps:
+
+    ### N. Task title
+
+    - [ ] **RED** — <what to write/check that currently fails>
+    - [ ] **ACTION** — <implement the minimal thing to make it pass>
+    - [ ] **GREEN** — <run/verify — confirm it passes>
+
+    ### Code tasks — RED is a test file
+
+    For anything involving writing or changing code, RED means writing an actual test
+    file that runs and fails. RED always produces a runnable test file. Not a description
+    of a test. An actual file.
+
+    Example of a REAL RED assertion (correct):
+      "Write tests/auth.test.mjs: POST /login with valid credentials, assert 200 response.
+       Run node --test tests/auth.test.mjs → test fails (endpoint not implemented)."
+
+    Example of a FAKE RED assertion (wrong):
+      "Verify that login works with valid credentials."
+      "Make sure the endpoint returns the correct response."
+      "Check that authentication is working."
+
+- role: user
+  content: |
+    I need you to produce tasks.md for a new feature: user authentication. The feature
+    needs a POST /login endpoint that accepts email and password, validates credentials
+    against the database, and returns a JWT token. Assume the User model already exists.
+
+- role: assistant
+  content: |
+    Planning request: user-authentication
+
+    Here is `tasks.md` for the login endpoint:
+
+    ---
+
+    ## Tasks — user-authentication
+
+    ### 1. POST /login returns 401 for invalid credentials
+
+    - [ ] **RED** — Write `tests/auth.test.mjs`: import the app, POST to `/login`
+          with an email and password that don't match any user, assert the response
+          status is 401. Run `node --test tests/auth.test.mjs` → test fails
+          (route does not exist yet).
+    - [ ] **ACTION** — Add `POST /login` route in `src/routes/auth.mjs`. Query the
+          User model for a matching email. If not found or password invalid, return 401.
+    - [ ] **GREEN** — Run `node --test tests/auth.test.mjs` → test passes.
+
+    ### 2. POST /login returns JWT for valid credentials
+
+    - [ ] **RED** — Add to `tests/auth.test.mjs`: POST to `/login` with valid email
+          and password (seed a test user), assert the response status is 200 and the
+          body contains a `token` field. Run `node --test tests/auth.test.mjs` → new
+          assertion fails (no token returned yet).
+    - [ ] **ACTION** — On successful credential match, sign a JWT with the user's ID
+          and return `{ token }` with status 200.
+    - [ ] **GREEN** — Run `node --test tests/auth.test.mjs` → all assertions pass.
+
+    ### 3. POST /login rejects missing fields
+
+    - [ ] **RED** — Add to `tests/auth.test.mjs`: POST to `/login` with empty body,
+          assert response status is 400. Run `node --test tests/auth.test.mjs` →
+          new assertion fails (no input validation yet).
+    - [ ] **ACTION** — Add input validation: if `email` or `password` is missing,
+          return 400 with `{ error: "email and password required" }`.
+    - [ ] **GREEN** — Run `node --test tests/auth.test.mjs` → all assertions pass.

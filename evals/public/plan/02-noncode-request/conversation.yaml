@@ -1,0 +1,86 @@
+# Scenario: Non-code request with binary assertion
+#
+# Failure mode tested: Fake RED — non-code task has vague RED assertion instead of binary one
+# What this tests: When the agent produces tasks.md for a documentation or config task,
+#                  the RED assertion must be specific and binary — something the agent can
+#                  directly check (e.g. "README.md does not contain section X") rather than
+#                  a vague quality judgment ("documentation is clear" or "README is good").
+#
+# This is a PASS scenario — the scripted agent response uses binary assertions.
+# A non-compliant agent would write RED steps like:
+#   "RED — The contributing guide is incomplete and unclear for new contributors."
+# instead of:
+#   "RED — Run grep 'Development Setup' CONTRIBUTING.md → section not found."
+
+- role: system
+  content: |
+    Produce all artifacts needed to execute a reespec request.
+
+    ## Task Format
+
+    Every task — code or non-code — has exactly 3 checklist steps:
+
+    ### N. Task title
+
+    - [ ] **RED** — <what to write/check that currently fails>
+    - [ ] **ACTION** — <implement the minimal thing to make it pass>
+    - [ ] **GREEN** — <run/verify — confirm it passes>
+
+    ### Non-code tasks — RED is an observable assertion
+
+    For research, documentation, config, or any task where no test runner applies:
+
+    RED is a specific, binary, agent-verifiable assertion. Not a vague description.
+
+    CORRECT examples (binary and checkable):
+      "Run grep '## Development Setup' CONTRIBUTING.md → section not found."
+      "cat .github/PULL_REQUEST_TEMPLATE.md → file does not exist."
+      "Run grep 'npm run test' README.md → line not present."
+
+    WRONG examples (vague, not checkable):
+      "The contributing guide is incomplete."
+      "Documentation is unclear for new contributors."
+      "README doesn't have enough information."
+
+    GREEN re-checks the exact same assertion and confirms it now passes.
+
+- role: user
+  content: |
+    I need a contributing guide for this project. New contributors are confused about
+    how to set up their development environment, run tests, and submit pull requests.
+    Please produce tasks.md for writing CONTRIBUTING.md.
+
+- role: assistant
+  content: |
+    Planning request: contributing-guide
+
+    Here is `tasks.md` for the contributing guide:
+
+    ---
+
+    ## Tasks — contributing-guide
+
+    ### 1. Add Development Setup section to CONTRIBUTING.md
+
+    - [ ] **RED** — Run `grep "## Development Setup" CONTRIBUTING.md` → section not
+          found (file may not exist or section is absent).
+    - [ ] **ACTION** — Create or update `CONTRIBUTING.md` with a "## Development Setup"
+          section covering: clone the repo, install dependencies (`npm install`),
+          required Node version.
+    - [ ] **GREEN** — Run `grep "## Development Setup" CONTRIBUTING.md` → section found.
+
+    ### 2. Add Running Tests section to CONTRIBUTING.md
+
+    - [ ] **RED** — Run `grep "## Running Tests" CONTRIBUTING.md` → section not found.
+    - [ ] **ACTION** — Add "## Running Tests" section to `CONTRIBUTING.md` covering:
+          how to run the test suite (`npm test`), what a passing run looks like.
+    - [ ] **GREEN** — Run `grep "## Running Tests" CONTRIBUTING.md` → section found.
+
+    ### 3. Add Pull Request process section to CONTRIBUTING.md
+
+    - [ ] **RED** — Run `grep "## Pull Request\|## Submitting" CONTRIBUTING.md` →
+          section not found.
+    - [ ] **ACTION** — Add "## Submitting a Pull Request" section covering: branch
+          naming conventions, what to include in a PR description, review process.
+    - [ ] **GREEN** — Run `grep "## Submitting a Pull Request" CONTRIBUTING.md` →
+          section found.
