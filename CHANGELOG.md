@@ -4,6 +4,27 @@ All notable changes to the reespec framework are documented here.
 
 ---
 
+## 1.2.0 — 2026-04-09
+
+### Added
+
+- **`evals/` suite** — promptfoo-based evaluation framework for verifying agent
+  behavior against the reespec spec. Includes public synthetic scenarios and a
+  private tier for real interaction transcripts. Supports structural (programmatic)
+  and semantic (LLM-as-judge) scoring layers. New npm scripts: `npm run eval`,
+  `npm run eval:private`, `npm run eval:structural`, `npm run eval:semantic`.
+
+### Changed
+
+- **`reespec-discover` skill** — strengthened the "IMPORTANT" guardrail to prevent
+  models from producing deliverables (templates, tools, directory structures) during
+  discovery. Replaced prohibitive language ("NEVER") with positive framing that
+  delegates deliverable creation to plan/execute phases. Added a "mental note"
+  protocol: when the model feels the urge to build, it must stop and ask the human
+  to capture the requirement in the brief instead.
+
+---
+
 ## 1.1.0 — 2026-03-30
 
 ### Added
