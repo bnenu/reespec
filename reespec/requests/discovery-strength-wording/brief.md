@@ -22,4 +22,4 @@ This is a framework-level change that affects the `reespec-discover` skill. It d
 
 - Changing the artifacts produced by plan or execute
 - Adding new phases or operational steps
-- Changing the "one question at a time" rule
+- Changing the "one question ae a time" rule
